@@ -435,19 +435,22 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // Initialisation Grist  (même pattern que onOptions.html)
+    // Initialisation Grist
     // ═══════════════════════════════════════════════════════════════
     window.onerror = msg => alert(String(msg));
 
+    // Afficher le widget immédiatement (pas besoin d'attendre onOptions)
+    document.getElementById('app').style.display = 'block';
+    updateView();
+
     grist.ready({
-      onEditOptions() { openConfig(); },
-      requiredAccess: 'read table'
+      onEditOptions() { openConfig(); }
+      // Pas de requiredAccess : ce widget ne lit pas de données de table
     });
 
     grist.onOptions(customOptions => {
       savedOptions = customOptions || {};
       updateView();
-      document.getElementById('app').style.display = 'block';
     });
   </script>
 
