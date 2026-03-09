@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Widget Gateway — Métropole de Lyon</title>
+  <script src="whitelist.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:      #E4002B;
+      --red-dark: #b50022;
+      --red-bg:   #fff0f2;
+      --green:    #1e7e45;
+      --green-bg: #edfaf3;
+      --grey-bg:  #f7f7f7;
+      --border:   #e0e0e0;
+      --text:     #1a1a1a;
+      --muted:    #666;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      overflow: hidden;
+    }
+
+    #status-screen {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    header {
+      background: var(--red);
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+
+    .logo-wrap {
+      background: white;
+      border-radius: 4px;
+      padding: 4px 8px;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .logo-wrap img { height: 28px; width: auto; display: block; }
+
+    header .htext { display: flex; flex-direction: column; }
+    header .subtitle { font-size: 11px; opacity: 0.85; }
+    header h1 { font-size: 14px; font-weight: 600; }
+
+    .status-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      text-align: center;
+      gap: 16px;
+    }
+
+    .status-icon { font-size: 48px; line-height: 1; }
+
+    .status-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .status-desc {
+      font-size: 13px;
+      color: var(--muted);
+      max-width: 420px;
+      line-height: 1.6;
+    }
+
+    /* Bloc URL copiable */
+    .url-example {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: var(--grey-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      max-width: 480px;
+      width: 100%;
+    }
+
+    .url-example code {
+      flex: 1;
+      padding: 9px 12px;
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--muted);
+      word-break: break-all;
+      text-align: left;
+    }
+
+    .url-example button {
+      padding: 9px 14px;
+      background: var(--red);
+      color: white;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+
+    .url-example button:hover { background: var(--red-dark); }
+
+    /* Pill de statut */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-pill.blocked {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid #f5b7b1;
+    }
+
+    /* URL bloquée */
+    .status-url {
+      font-size: 12px;
+      font-family: monospace;
+      background: var(--grey-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 12px;
+      color: var(--muted);
+      max-width: 420px;
+      word-break: break-all;
+    }
+
+    .contact-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 16px;
+      background: var(--grey-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 420px;
+      text-align: left;
+    }
+
+    .contact-box a {
+      color: var(--red);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .contact-box a:hover { text-decoration: underline; }
+
+    /* Toast copié */
+    #copy-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: #1a1a1a;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+    }
+
+    #copy-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+  </style>
+</head>
+<body>
+
+  <div id="status-screen">
+    <header>
+      <div class="logo-wrap">
+        <img src="Logo_Métropole_Lyon_-_2022.svg" alt="Métropole de Lyon">
+      </div>
+      <div class="htext">
+        <div class="subtitle">Widget Grist — Métropole de Lyon</div>
+        <h1>Gateway de widgets</h1>
+      </div>
+    </header>
+    <div class="status-body" id="status-body"></div>
+  </div>
+
+  <div id="copy-toast">URL copiée ✓</div>
+
+  <script>
+
+    // ─── Lecture de l'URL cible depuis le hash ────────────────────────────────
+    // Format dans Grist : https://.../index.html#https://widget-cible.../
+    // Pas de grist.ready() → pas de configure() → pas de boucle réactive.
+
+    function getTargetUrl() {
+      return window.location.hash
+        ? decodeURIComponent(window.location.hash.slice(1))
+        : null;
+    }
+
+    const targetUrl = getTargetUrl();
+
+    // ─── Proxy de messages Grist ↔ widget cible ───────────────────────────────
+    // Relaie tous les messages entre l'iframe enfant et Grist (window.parent)
+    // pour que le widget cible ait un accès complet aux données Grist.
+
+    let proxyIframe = null;
+
+    window.addEventListener('message', function (e) {
+      if (!proxyIframe) return;
+      try {
+        if (e.source === proxyIframe.contentWindow) {
+          window.parent.postMessage(e.data, '*');
+        } else if (e.source === window.parent) {
+          proxyIframe.contentWindow.postMessage(e.data, '*');
+        }
+      } catch (_) {}
+    });
+
+    // ─── Rendu ────────────────────────────────────────────────────────────────
+
+    const body = document.getElementById('status-body');
+
+    if (!targetUrl) {
+      renderUnconfigured();
+    } else {
+      const check = Whitelist.checkUrl(targetUrl, []);
+      if (check.allowed) {
+        loadWidget(targetUrl);
+      } else {
+        renderBlocked(targetUrl, check);
+      }
+    }
+
+    // ─── Chargement du widget cible ───────────────────────────────────────────
+
+    function loadWidget(url) {
+      proxyIframe = document.createElement('iframe');
+      proxyIframe.src = url;
+      proxyIframe.style.cssText =
+        'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:100;';
+      document.body.appendChild(proxyIframe);
+    }
+
+    // ─── Écran "non configuré" ────────────────────────────────────────────────
+
+    function renderUnconfigured() {
+      const exampleUrl = window.location.href.split('#')[0] +
+        '#https://username.github.io/mon-widget/';
+
+      body.innerHTML =
+        '<div class="status-icon">⚙️</div>' +
+        '<div class="status-title">Aucun widget configuré</div>' +
+        '<div class="status-desc">' +
+          'Dans le panneau de configuration Grist, renseignez l\'URL du widget ' +
+          'à charger directement à la suite de l\'URL de ce gateway :' +
+        '</div>' +
+        '<div class="url-example">' +
+          '<code id="example-url">' + esc(exampleUrl) + '</code>' +
+          '<button onclick="copyUrl()">Copier</button>' +
+        '</div>' +
+        '<div class="status-desc" style="font-size:12px">' +
+          'Remplacez la partie après <strong>#</strong> par l\'URL réelle du widget à charger.' +
+        '</div>' +
+        '<div class="contact-box"><span>🔒</span><span>' +
+          'Seuls les widgets issus de dépôts homologués par la Métropole de Lyon ' +
+          'seront autorisés. Pour en savoir plus : ' +
+          '<a href="mailto:support.grist@grandlyon.com">support.grist@grandlyon.com</a>' +
+        '</span></div>';
+    }
+
+    // ─── Écran "bloqué" ───────────────────────────────────────────────────────
+
+    function renderBlocked(url, check) {
+      body.innerHTML =
+        '<div class="status-icon">🚫</div>' +
+        '<div class="status-title">Widget non autorisé</div>' +
+        '<span class="status-pill blocked">⛔ Dépôt non homologué</span>' +
+        '<div class="status-url">' + esc(url) + '</div>' +
+        (check.parsed
+          ? '<div class="status-desc" style="font-size:12px">' +
+            'Origine détectée : <strong>' + esc(check.parsed.display) + '</strong>' +
+            '</div>'
+          : '') +
+        '<div class="status-desc">' +
+          'Ce widget provient d\'un dépôt qui n\'a pas été homologué ' +
+          'par la Métropole de Lyon.' +
+        '</div>' +
+        '<div class="contact-box"><span>💬</span><span>' +
+          'Pour faire homologuer un widget, contactez : ' +
+          '<a href="mailto:support.grist@grandlyon.com">support.grist@grandlyon.com</a>' +
+        '</span></div>';
+    }
+
+    // ─── Copie de l'URL exemple ───────────────────────────────────────────────
+
+    function copyUrl() {
+      const url = document.getElementById('example-url').textContent;
+      navigator.clipboard.writeText(url).then(function () {
+        const toast = document.getElementById('copy-toast');
+        toast.classList.add('show');
+        setTimeout(function () { toast.classList.remove('show'); }, 2000);
+      });
+    }
+
+    // ─── Rechargement si le hash change (admin modifie l'URL dans Grist) ────────
+    window.addEventListener('hashchange', function () {
+      window.location.reload();
+    });
+
+    // ─── Anti-XSS ─────────────────────────────────────────────────────────────
+
+    function esc(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+  </script>
+</body>
+</html>
