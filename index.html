@@ -8,11 +8,15 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
-    html, body {
-      margin: 0;
-      width: 100%;
+    html {
       height: 100%;
-      overflow: hidden;
+    }
+
+    body {
+      margin: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
       font-size: 13px;
       background: var(--grist-theme-bg-default, #fff);
@@ -21,35 +25,38 @@
 
     /* ── Conteneur principal ── */
     #app {
-      display: none;
-      position: fixed;
-      inset: 0;
+      flex: 1;
+      display: none;           /* caché jusqu'à réception des options Grist */
+      flex-direction: column;
+      min-height: 0;
     }
 
     /* ── Panneaux ── */
     .panel {
       display: none;
-      position: absolute;
-      inset: 0;
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
     }
 
     .panel.active {
       display: flex;
-      flex-direction: column;
     }
 
     /* Panneau principal : l'iframe remplit tout */
     #main-panel.active {
       display: block;
+      flex: 1;
     }
 
     #widget-frame {
       width: 100%;
       height: 100%;
       border: none;
+      display: block;
     }
 
-    /* Panneaux info centrés */
+    /* ── Panneaux info centrés ── */
     #error-panel.active,
     #blocked-panel.active {
       align-items: center;
@@ -58,30 +65,20 @@
       padding: 32px 24px;
     }
 
-    .panel-icon { font-size: 52px; margin-bottom: 14px; }
-
-    .panel-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    .panel-subtitle {
-      font-size: 13px;
-      color: #666;
-      line-height: 1.5;
-    }
+    .panel-icon   { font-size: 48px; margin-bottom: 12px; }
+    .panel-title  { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .panel-sub    { font-size: 13px; color: #666; line-height: 1.5; }
 
     #blocked-panel .panel-title { color: #c0392b; }
 
-    .url-display {
+    .url-chip {
       margin-top: 14px;
       font-family: monospace;
       font-size: 12px;
       color: #555;
       background: #f5f5f5;
-      border: 1px solid #e0e0e0;
-      padding: 8px 12px;
+      border: 1px solid #ddd;
+      padding: 7px 12px;
       border-radius: 4px;
       word-break: break-all;
       max-width: 480px;
@@ -96,44 +93,46 @@
       max-width: 560px;
       width: 100%;
       margin: 0 auto;
-      padding: 20px 16px 32px;
+      padding: 24px 16px 40px;
     }
 
-    .section { margin-bottom: 22px; }
-
-    .section-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #333;
-      margin: 0 0 4px 0;
-      padding-bottom: 6px;
-      border-bottom: 1px solid #e8e8e8;
+    .config-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 0 0 20px 0;
+      color: #222;
     }
 
-    .section-desc {
+    /* Sections */
+    .section { margin-bottom: 24px; }
+
+    .section-label {
       font-size: 12px;
-      color: #777;
-      margin: 5px 0 10px 0;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #888;
+      margin: 0 0 6px 0;
+    }
+
+    .section-hint {
+      font-size: 12px;
+      color: #888;
+      margin: 4px 0 10px 0;
       line-height: 1.5;
     }
 
-    .section-desc code {
+    .section-hint code {
       background: #f0f0f0;
       padding: 1px 4px;
       border-radius: 3px;
       font-size: 11px;
     }
 
-    label {
-      display: block;
-      font-size: 12px;
-      color: #555;
-      margin-bottom: 4px;
-    }
-
+    /* Inputs */
     input[type="text"] {
       width: 100%;
-      padding: 7px 10px;
+      padding: 8px 10px;
       border: 1px solid #d0d0d0;
       border-radius: 4px;
       font-size: 13px;
@@ -143,10 +142,7 @@
 
     input[type="text"]:focus { border-color: #16b378; }
 
-    .url-status {
-      margin-top: 6px;
-      min-height: 20px;
-    }
+    .url-status { margin-top: 6px; min-height: 20px; }
 
     .badge {
       display: inline-block;
@@ -156,86 +152,71 @@
       font-weight: 600;
     }
 
-    .badge-ok       { background: #d4f0e3; color: #116645; }
-    .badge-blocked  { background: #fde8e7; color: #9b2318; }
+    .badge-ok      { background: #d4f0e3; color: #116645; }
+    .badge-blocked { background: #fde8e7; color: #9b2318; }
 
     /* Liste blanche */
-    .whitelist-list {
+    .wl-list {
       list-style: none;
-      margin: 0 0 8px 0;
+      margin: 0 0 8px;
       padding: 0;
     }
 
-    .whitelist-item {
+    .wl-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 5px 8px;
+      padding: 6px 10px;
       background: #f8f8f8;
-      border: 1px solid #ebebeb;
+      border: 1px solid #eaeaea;
       border-radius: 4px;
       margin-bottom: 4px;
     }
 
-    .whitelist-domain { font-family: monospace; font-size: 12px; }
+    .wl-domain { font-family: monospace; font-size: 12px; }
 
-    .btn-remove {
-      background: none;
-      border: none;
-      color: #b0b0b0;
-      cursor: pointer;
-      font-size: 15px;
-      padding: 0 3px;
-      line-height: 1;
-      transition: color 0.1s;
+    .btn-x {
+      background: none; border: none;
+      color: #bbb; cursor: pointer;
+      font-size: 15px; padding: 0 3px; line-height: 1;
+      transition: color .1s;
     }
+    .btn-x:hover { color: #c0392b; }
 
-    .btn-remove:hover { color: #c0392b; }
-
-    .add-row {
-      display: flex;
-      gap: 6px;
-    }
-
+    .add-row { display: flex; gap: 6px; }
     .add-row input { flex: 1; }
 
     .empty-hint {
-      font-size: 12px;
-      color: #999;
-      font-style: italic;
-      padding: 4px 0;
+      font-size: 12px; color: #aaa; font-style: italic; padding: 4px 0;
     }
 
     /* Boutons */
     .btn {
-      padding: 7px 16px;
-      border-radius: 4px;
-      border: none;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s;
+      padding: 8px 16px;
+      border-radius: 4px; border: none;
+      font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: background .15s;
       white-space: nowrap;
     }
-
-    .btn-primary         { background: #16b378; color: #fff; }
-    .btn-primary:hover   { background: #11976a; }
-    .btn-ghost           { background: transparent; color: #555; border: 1px solid #ccc; }
-    .btn-ghost:hover     { background: #f5f5f5; }
+    .btn-primary       { background: #16b378; color: #fff; }
+    .btn-primary:hover { background: #11976a; }
+    .btn-ghost         { background: transparent; color: #555; border: 1px solid #ccc; }
+    .btn-ghost:hover   { background: #f5f5f5; }
 
     .config-footer {
-      display: flex;
-      gap: 8px;
+      display: flex; gap: 8px;
       padding-top: 16px;
-      border-top: 1px solid #e8e8e8;
+      border-top: 1px solid #eee;
     }
+
+    hr.sep { border: none; border-top: 1px solid #eee; margin: 20px 0; }
   </style>
 </head>
 
 <body>
   <div id="app">
 
-    <!-- ── Vue principale : iframe ───────────────────────── -->
+    <!-- ── Vue principale : iframe ───────────────────────────── -->
     <div id="main-panel" class="panel">
       <iframe id="widget-frame"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
@@ -243,49 +224,53 @@
       </iframe>
     </div>
 
-    <!-- ── Aucune URL configurée ─────────────────────────── -->
+    <!-- ── Aucune URL configurée ──────────────────────────────── -->
     <div id="error-panel" class="panel">
       <div class="panel-icon">⚙️</div>
       <div class="panel-title">Aucune URL configurée</div>
-      <div class="panel-subtitle">
-        Cliquez sur « Open configuration » dans le panneau Creator<br>
-        pour paramétrer ce widget.
+      <div class="panel-sub">
+        Cliquez sur <strong>« Open configuration »</strong> dans le panneau Creator<br>
+        pour renseigner l'URL du widget et gérer la liste blanche.
       </div>
     </div>
 
-    <!-- ── URL bloquée par la whitelist ──────────────────── -->
+    <!-- ── URL bloquée par la whitelist ──────────────────────── -->
     <div id="blocked-panel" class="panel">
       <div class="panel-icon">⛔</div>
       <div class="panel-title">URL non autorisée</div>
-      <div class="panel-subtitle">
+      <div class="panel-sub">
         Ce domaine ne figure pas dans la liste blanche.<br>
-        Contactez l'administrateur pour l'ajouter.
+        Ouvrez <strong>« Open configuration »</strong> pour l'ajouter.
       </div>
-      <div class="url-display" id="blocked-url-display"></div>
+      <div class="url-chip" id="blocked-url-display"></div>
     </div>
 
-    <!-- ── Panneau de configuration ──────────────────────── -->
+    <!-- ── Panneau de configuration ───────────────────────────── -->
     <div id="config-panel" class="panel">
       <div class="config-inner">
 
+        <p class="config-title">⚙️ Configuration du widget</p>
+
+        <!-- URL du widget -->
         <div class="section">
-          <h3 class="section-title">URL du widget</h3>
-          <p class="section-desc">URL complète du widget hébergé (GitHub Pages, Netlify, Vercel, etc.)</p>
-          <label for="url-input">URL</label>
+          <p class="section-label">URL du widget à charger</p>
+          <p class="section-hint">URL complète hébergée sur GitHub Pages, Netlify, Vercel, etc.</p>
           <input type="text" id="url-input"
             placeholder="https://utilisateur.github.io/mon-widget/"
             oninput="onUrlInput()" />
           <div class="url-status" id="url-status"></div>
         </div>
 
+        <hr class="sep">
+
+        <!-- Liste blanche -->
         <div class="section">
-          <h3 class="section-title">Liste blanche des domaines</h3>
-          <p class="section-desc">
-            Seuls les domaines listés ici sont autorisés à s'afficher.<br>
-            Les sous-domaines sont automatiquement inclus :
-            <code>github.io</code> autorise <code>user.github.io</code>.
+          <p class="section-label">Liste blanche des domaines</p>
+          <p class="section-hint">
+            Seuls les domaines listés sont autorisés. Les sous-domaines sont inclus automatiquement :<br>
+            <code>github.io</code> autorise aussi <code>user.github.io</code>.
           </p>
-          <ul class="whitelist-list" id="whitelist-list"></ul>
+          <ul class="wl-list" id="wl-list"></ul>
           <div class="add-row">
             <input type="text" id="new-domain"
               placeholder="github.io, netlify.app, …"
@@ -309,19 +294,16 @@
     // État
     // ═══════════════════════════════════════════════════════════════
     let savedOptions  = {};
-    let editWhitelist = [];   // copie de travail en mode configuration
+    let editWhitelist = [];   // copie de travail pendant la config
 
     // ═══════════════════════════════════════════════════════════════
-    // Vérification de la whitelist
+    // Vérification whitelist
     // ═══════════════════════════════════════════════════════════════
     function isAllowed(urlStr, whitelist) {
       if (!whitelist || whitelist.length === 0) return false;
       let hostname;
-      try {
-        hostname = new URL(urlStr).hostname.toLowerCase();
-      } catch (e) {
-        return false;
-      }
+      try { hostname = new URL(urlStr).hostname.toLowerCase(); }
+      catch (e) { return false; }
       return whitelist.some(entry => {
         const d = entry.toLowerCase().trim();
         return hostname === d || hostname.endsWith('.' + d);
@@ -329,7 +311,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // Gestion des panneaux  (même pattern que onOptions.html)
+    // Gestion des panneaux
     // ═══════════════════════════════════════════════════════════════
     function showPanel(name) {
       ['main', 'error', 'blocked', 'config'].forEach(id => {
@@ -345,15 +327,14 @@
       const url       = savedOptions.url;
       const whitelist = savedOptions.whitelist || [];
 
-      if (!url) {
-        showPanel('error');
-        return;
-      }
+      if (!url) { showPanel('error'); return; }
+
       if (!isAllowed(url, whitelist)) {
         document.getElementById('blocked-url-display').textContent = url;
         showPanel('blocked');
         return;
       }
+
       const frame = document.getElementById('widget-frame');
       if (frame.src !== url) frame.src = url;
       showPanel('main');
@@ -371,26 +352,24 @@
     }
 
     function renderWhitelist() {
-      const list = document.getElementById('whitelist-list');
+      const list = document.getElementById('wl-list');
       if (editWhitelist.length === 0) {
         list.innerHTML = '<li class="empty-hint">Aucun domaine — toutes les URL seront bloquées.</li>';
         return;
       }
       list.innerHTML = editWhitelist.map((d, i) => `
-        <li class="whitelist-item">
-          <span class="whitelist-domain">${esc(d)}</span>
-          <button class="btn-remove" onclick="removeDomain(${i})" title="Supprimer">✕</button>
+        <li class="wl-item">
+          <span class="wl-domain">${esc(d)}</span>
+          <button class="btn-x" onclick="removeDomain(${i})" title="Supprimer">✕</button>
         </li>
       `).join('');
     }
 
     function addDomain() {
       const input = document.getElementById('new-domain');
-      // Nettoyer la saisie : supprimer le schéma et le chemin, garder uniquement le hostname
       let raw = input.value.trim().toLowerCase()
         .replace(/^https?:\/\//, '')
-        .split('/')[0]
-        .split('?')[0];
+        .split('/')[0].split('?')[0];
       if (!raw || editWhitelist.includes(raw)) { input.value = ''; return; }
       editWhitelist.push(raw);
       input.value = '';
@@ -410,8 +389,7 @@
       const url = document.getElementById('url-input').value.trim();
       const el  = document.getElementById('url-status');
       if (!url) { el.innerHTML = ''; return; }
-      const ok = isAllowed(url, editWhitelist);
-      el.innerHTML = ok
+      el.innerHTML = isAllowed(url, editWhitelist)
         ? '<span class="badge badge-ok">✓ Autorisée</span>'
         : '<span class="badge badge-blocked">✗ Bloquée par la whitelist</span>';
     }
@@ -420,11 +398,16 @@
       const url = document.getElementById('url-input').value.trim();
       await grist.widgetApi.setOption('url',       url);
       await grist.widgetApi.setOption('whitelist', editWhitelist);
-      // Grist appelle onOptions avec les nouvelles valeurs → updateView()
+      // grist.onOptions va se déclencher → updateView()
     }
 
     function cancelConfig() {
-      updateView();
+      // Si on avait des options sauvegardées → retour à la vue
+      // Sinon (premier lancement) → rester sur la config
+      if (savedOptions.url || (savedOptions.whitelist && savedOptions.whitelist.length)) {
+        updateView();
+      }
+      // Pas de fermeture si rien n'est encore configuré
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -435,13 +418,9 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // Initialisation Grist
+    // Initialisation Grist  (même pattern que onOptions.html)
     // ═══════════════════════════════════════════════════════════════
     window.onerror = msg => alert(String(msg));
-
-    // Afficher le widget immédiatement (pas besoin d'attendre onOptions)
-    document.getElementById('app').style.display = 'block';
-    updateView();
 
     grist.ready({
       onEditOptions() { openConfig(); }
@@ -450,7 +429,17 @@
 
     grist.onOptions(customOptions => {
       savedOptions = customOptions || {};
-      updateView();
+
+      // Rendre #app visible (il est display:none jusqu'ici)
+      document.getElementById('app').style.display = 'flex';
+
+      // Si aucune option sauvegardée → ouvrir config directement
+      // (comportement identique au widget "URL personnalisée" natif de Grist)
+      if (!customOptions || (!customOptions.url && !customOptions.whitelist)) {
+        openConfig();
+      } else {
+        updateView();
+      }
     });
   </script>
 
